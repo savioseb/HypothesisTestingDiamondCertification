@@ -1,0 +1,103 @@
+---
+title: On Average, are Diamonds Certified by HRD Priced Higher than those Certified
+  by Other Organizations?
+author: "Prasanna K R"
+date: "August 31, 2015"
+output: 
+  pdf_document: 
+    keep_tex: yes
+    latex_engine: lualatex
+    number_sections: yes
+  html_document: 
+    keep_md: yes
+    number_sections: yes
+---
+
+
+```{r setup, echo=FALSE , include=FALSE}
+knitr::opts_chunk$set(cache=TRUE, out.width='450px' , dpi=200 )  
+options(width=80 , scipen=10000)
+```
+
+```{r libraries, include=FALSE}
+library(ggplot2)
+```
+
+# The Hypotheses
+Let us state our Hypotheses:
+
+* <B>Null Hypothesis (H~0~)</B> : On average, there is no difference in diamond's pricing, between HRD or any other organization
+* <B>Alternate Hypothesis (H~A~)</B>: On average, HRD certified diamonds are priced higher (one-sided test)
+
+Mathematically, the hypothese are expressed below:
+
+* H~0~: μ~diff~ = 0
+* H~A~: μ~diff~ > 0
+
+# The Data
+```{r hypDataSubset, echo=FALSE}
+diamonds <- read.csv( "Data.csv")
+HRD_Diamonds <- subset( diamonds , diamonds$Certification.Body == "HRD")
+Non_HRD_Diamonds <- subset( diamonds , diamonds$Certification.Body != "HRD" )
+```
+
+We separate the data sets - diamonds certified by HRD and other diamonds. There are ```r nrow(HRD_Diamonds)``` observations of HRD Diamonds and ```r nrow( Non_HRD_Diamonds )``` non-HRD Certified Diamonds.
+
+# Central Limit Theorm: Checking the Conditions for Hypothesis Testing for Paired Data
+The conditions for hypothesis testing:
+
+* <B>Independence:</B> Sampled observations must be independent. Random sample must be collected with replacement because the size of HRD Certified diamond is small
+* <B>Sample Size / Skew: </B> The no of elements must be more than 30.
+
+We select a size of <code>40</code> with replacement.
+
+```{r samplingHyp, echo=FALSE}
+ndiff <- 40
+set.seed(425)
+HRD_Sample <- sample( x = HRD_Diamonds$Price.in.Singapore.. , size = ndiff , replace = TRUE )
+Non_HRD_Sample <- sample( x = Non_HRD_Diamonds$Price.in.Singapore.. , size = ndiff , replace = TRUE )
+```
+
+```{r vizualize, echo=FALSE}
+xVar <- c(HRD_Sample , Non_HRD_Sample )
+colorVar <- as.factor(c(rep(1, ndiff), rep(2, ndiff ) ) )
+sampleDensityDf <- data.frame( xVar ,  colorVar )
+
+ggplot( sampleDensityDf , aes(x = xVar, fill = colorVar) ) + 
+  geom_density( alpha = .2 ) +
+  scale_x_continuous( "Price of Diamond in SGD" ) +
+  scale_fill_discrete( 
+    name = "Sample" , labels=c( "HRD Certified Sample", "Non HRD Certified Sample" ) ) +
+  scale_y_continuous( "Density" )
+
+ggplot( sampleDensityDf , aes( colorVar , xVar ) ) + 
+  geom_boxplot( aes( fill = colorVar ) ) + 
+  scale_y_continuous( "Price of Diamond in SGD" ) +
+  scale_fill_discrete( 
+    name = "Sample" , labels=c( "HRD Certified Sample", "Non HRD Certified Sample" ) ) +
+  scale_x_discrete( "Sample" , labels=c( "HRD Certified Sample", "Non HRD Certified Sample" )  )
+
+```
+
+# The Test Statistic
+```{r calculTestStatistic, echo=FALSE}
+standardError <- function( x ) {
+  sd( x )/sqrt( length( x ) )
+}
+
+Diff = HRD_Sample - Non_HRD_Sample
+xBar <- mean(Diff)
+```
+```{r calculTestStatistic1}
+zScore <- xBar / standardError(Diff)
+zScore
+# Calculating p-value
+# 1-pnorm() because we are doing a one-sided test - greater than
+pValue <- 1-pnorm( zScore ) 
+pValue
+
+```
+
+# Null Hypothesis (H~0~) is Rejected
+The **Null Hypothesis (H~0~)** is rejected because the <code>pValue</code> is lesser than the significance value of <code>0.05</code>.
+
